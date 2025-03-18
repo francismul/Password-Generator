@@ -38,6 +38,16 @@ class App {
             result.add(punctuation.get(x));
         }
 
+        while (result.size() < characterNumber) {
+            List<String> allCharacters = new ArrayList<>();
+            allCharacters.addAll(lowercase);
+            allCharacters.addAll(uppercase);
+            allCharacters.addAll(digits);
+            allCharacters.addAll(punctuation);
+            Collections.shuffle(allCharacters, rand);
+            result.add(allCharacters.get(rand.nextInt(allCharacters.size())));
+        }
+
         System.out.println("Password: ");
 
         for (String pass : result){
