@@ -23,8 +23,8 @@ class App {
         Collections.shuffle(punctuation, rand);
 
         // calculate 30% & 20% of number of characters
-        int part1 = Math.round(characterNumber * (30 / 100));
-        int part2 = Math.round(characterNumber * (20 / 100));
+        int part1 = Math.round(characterNumber * (30.0f / 100));
+        int part2 = Math.round(characterNumber * (20.0f / 100));
 
         List<String> result = new ArrayList<>(20);
 
