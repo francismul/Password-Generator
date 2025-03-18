@@ -48,7 +48,10 @@ class App {
             result.add(allCharacters.get(rand.nextInt(allCharacters.size())));
         }
 
-        System.out.println("Password: ");
+
+        Collections.shuffle(result, rand);
+
+        System.out.print("Password: ");
 
         for (String pass : result){
             System.out.print(pass);
