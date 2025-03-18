@@ -1,4 +1,9 @@
-import java.util.*;
+import java.util.Collections;
+import java.util.Scanner;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.Arrays;
 
 class App {
     public static void main(String[] args) {
