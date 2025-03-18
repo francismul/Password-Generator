@@ -15,11 +15,12 @@ class App {
         List<String> punctuation = new ArrayList<>(Arrays.asList("!", "\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", "/", ":", ";", "<", "=", ">", "?", "@", "[", "\\", "]", "^", "_", "`", "{", "|", "}", "~"));
 
         int characterNumber = 20;
+        Random rand = new Random();
 
-        Collections.shuffle(lowercase, new Random());
-        Collections.shuffle(uppercase, new Random());
-        Collections.shuffle(digits);
-        Collections.shuffle(punctuation);
+        Collections.shuffle(lowercase, rand);
+        Collections.shuffle(uppercase, rand);
+        Collections.shuffle(digits, rand);
+        Collections.shuffle(punctuation, rand);
 
         // calculate 30% & 20% of number of characters
         int part1 = Math.round(characterNumber * (30 / 100));
