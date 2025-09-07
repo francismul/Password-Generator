@@ -26,9 +26,22 @@ public class App {
 
                 switch (choice) {
                     case 1: {
-                        System.out.print("Enter password length (4-40): ");
-                        int length = scanner.nextInt();
-                        scanner.nextLine();
+                        int length = -1;
+                        while (true) {
+                            System.out.print("Enter password length (4-40): ");
+                            if (!scanner.hasNextInt()) {
+                                System.out.println("Invalid input! Please enter an integer between 4 and 40.");
+                                scanner.nextLine(); // consume invalid input
+                                continue;
+                            }
+                            length = scanner.nextInt();
+                            scanner.nextLine(); // consume newline
+                            if (length < 4 || length > 40) {
+                                System.out.println("Invalid length! Please enter a value between 4 and 40.");
+                                continue;
+                            }
+                            break;
+                        }
 
                         System.out.print("Include lowercase? (y/n): ");
                         boolean lower = scanner.nextLine().toLowerCase().startsWith("y");
