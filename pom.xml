@@ -7,7 +7,7 @@
 
     <groupId>com.francismul</groupId>
     <artifactId>password-generator</artifactId>
-    <version>1.0.0</version>
+    <version>5.0.0</version>
     <packaging>jar</packaging>
 
     <name>Password Generator</name>
