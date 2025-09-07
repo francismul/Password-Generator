@@ -16,8 +16,8 @@ public class PasswordGenerator {
     private static final String SYMBOLS = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
 
     public static String generate(int length, boolean lower, boolean upper, boolean digits, boolean symbols) {
-        if (length < 1)
-            throw new IllegalArgumentException("Length must be >= 1");
+        if (length < 4)
+            throw new IllegalArgumentException("Length must be >= 4");
         StringBuilder pool = new StringBuilder();
         List<Character> required = new ArrayList<>();
         if (lower) {
