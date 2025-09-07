@@ -96,7 +96,7 @@ jobs:
 
             ### 🖥️ Requirements
             - **.msi / .exe**: No additional requirements
-            - **.jar** files: Java 17 or later installed
+            - **.jar** files: Java 21 or later installed
           files: |
             dist/*.msi
             PasswordGenerator-Portable.zip
