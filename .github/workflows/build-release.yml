@@ -76,7 +76,7 @@ jobs:
             ## 🚀 Password Generator v${{ steps.release_info.outputs.version }}
 
             ### 🎉 What's New in v6.0.0
-            - � **Persistent Password History** - All passwords saved across sessions
+            - 📥 **Persistent Password History** - All passwords saved across sessions
             - 🔒 **Master Password Protection** - Secure access to your history
             - 📊 **Enhanced History Viewer** - Beautiful timeline of all generated passwords
             - 💾 **Export Feature** - Save your history to file

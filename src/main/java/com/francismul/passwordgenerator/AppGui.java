@@ -722,34 +722,59 @@ public class AppGui extends JFrame {
     }
 
     private String promptSetMasterPassword() {
-        JPanel panel = new JPanel(new GridLayout(3, 1, 5, 5));
-        JLabel label = new JLabel("First time accessing history. Please set a master password:");
-        JPasswordField passwordField = new JPasswordField(20);
-        JPasswordField confirmField = new JPasswordField(20);
+        final int MAX_ATTEMPTS = 3;
+        int attempts = 0;
         
-        panel.add(label);
-        panel.add(new JLabel("Password:"));
-        panel.add(passwordField);
-        panel.add(new JLabel("Confirm:"));
-        panel.add(confirmField);
-        
-        int result = JOptionPane.showConfirmDialog(this, panel, "Set Master Password", 
-            JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-        
-        if (result == JOptionPane.OK_OPTION) {
+        while (attempts < MAX_ATTEMPTS) {
+            JPanel panel = new JPanel(new GridLayout(3, 1, 5, 5));
+            JLabel label = new JLabel("First time accessing history. Please set a master password:");
+            JPasswordField passwordField = new JPasswordField(20);
+            JPasswordField confirmField = new JPasswordField(20);
+            
+            panel.add(label);
+            panel.add(new JLabel("Password:"));
+            panel.add(passwordField);
+            panel.add(new JLabel("Confirm:"));
+            panel.add(confirmField);
+            
+            int result = JOptionPane.showConfirmDialog(this, panel, "Set Master Password", 
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            
+            if (result != JOptionPane.OK_OPTION) {
+                return null; // User cancelled
+            }
+            
             String password = new String(passwordField.getPassword());
             String confirm = new String(confirmField.getPassword());
             
             if (password.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Password cannot be empty!", 
-                    "Invalid Password", JOptionPane.ERROR_MESSAGE);
-                return null;
+                attempts++;
+                if (attempts < MAX_ATTEMPTS) {
+                    JOptionPane.showMessageDialog(this, 
+                        "Password cannot be empty! Attempt " + attempts + " of " + MAX_ATTEMPTS, 
+                        "Invalid Password", JOptionPane.ERROR_MESSAGE);
+                    continue;
+                } else {
+                    JOptionPane.showMessageDialog(this, 
+                        "Maximum attempts exceeded. Password setup cancelled.", 
+                        "Setup Cancelled", JOptionPane.ERROR_MESSAGE);
+                    return null;
+                }
             }
             
             if (!password.equals(confirm)) {
-                JOptionPane.showMessageDialog(this, "Passwords do not match!", 
-                    "Password Mismatch", JOptionPane.ERROR_MESSAGE);
-                return promptSetMasterPassword(); // Retry
+                attempts++;
+                if (attempts < MAX_ATTEMPTS) {
+                    JOptionPane.showMessageDialog(this, 
+                        "Passwords do not match! Attempt " + attempts + " of " + MAX_ATTEMPTS, 
+                        "Password Mismatch", JOptionPane.ERROR_MESSAGE);
+                    continue;
+                } else {
+                    JOptionPane.showMessageDialog(this, 
+                        "Maximum attempts exceeded. Password setup cancelled.", 
+                        "Setup Cancelled", JOptionPane.ERROR_MESSAGE);
+                    return null;
+                }
             }
             
             try {

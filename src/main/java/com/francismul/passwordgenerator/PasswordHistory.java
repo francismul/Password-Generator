@@ -115,11 +115,14 @@ public class PasswordHistory {
 
     /**
      * Clears all password history.
+     * @throws IOException if the file exists but cannot be deleted
      */
     public static void clearHistory() throws IOException {
         File file = new File(HISTORY_FILE);
         if (file.exists()) {
-            file.delete();
+            if (!file.delete()) {
+                throw new IOException("Failed to delete history file: " + HISTORY_FILE);
+            }
         }
     }
 
