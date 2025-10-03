@@ -79,11 +79,14 @@ public class PasswordProtection {
 
     /**
      * Resets the master password (deletes the password file).
+     * @throws IOException if the file exists but cannot be deleted
      */
     public static void resetMasterPassword() throws IOException {
         File file = new File(PASSWORD_FILE);
         if (file.exists()) {
-            file.delete();
+            if (!file.delete()) {
+                throw new IOException("Failed to delete master password file: " + PASSWORD_FILE);
+            }
         }
     }
 
