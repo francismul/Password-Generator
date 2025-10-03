@@ -75,7 +75,16 @@ jobs:
           body: |
             ## 🚀 Password Generator v${{ steps.release_info.outputs.version }}
 
-            ### 📥 Downloads
+            ### 🎉 What's New in v6.0.0
+            - � **Persistent Password History** - All passwords saved across sessions
+            - 🔒 **Master Password Protection** - Secure access to your history
+            - 📊 **Enhanced History Viewer** - Beautiful timeline of all generated passwords
+            - 💾 **Export Feature** - Save your history to file
+            - 🛡️ **SHA-256 Security** - Master password stored with cryptographic hashing
+
+            For complete changelog, see [CHANGELOG.md](https://github.com/francismul/Password-Generator/blob/main/CHANGELOG.md)
+
+            ### �📥 Downloads
             - **PasswordGenerator.msi** – Windows Installer (**Recommended**)  
               Installs the app system-wide with Start Menu & desktop shortcut.
             - **PasswordGenerator-Portable.zip** – Portable Version (**No Installation**)  
@@ -85,14 +94,23 @@ jobs:
             - **password-generator-Console.jar** – Console Version (requires Java 21+)  
               Run with: `java -jar password-generator-Console.jar`
 
-            ### ✨ Features
-            - Modern GUI Password Generator (`com.francismul.passwordgenerator.AppGui`)
-            - Console Password Generator (`com.francismul.passwordgenerator.ConsoleApp`)
-            - Legacy Password Generator (`com.francismul.passwordgenerator.App`)
+            ### ✨ Core Features
+            - Modern GUI Password Generator with dark/light themes
+            - Password strength indicator with entropy calculation
+            - Persistent password history with master password protection
+            - Customizable character sets (uppercase, lowercase, numbers, symbols)
+            - Password length slider (4-40 characters)
+            - Copy to clipboard & export functionality
+            - Animated password reveal with glitch effects
 
             ### 🖥️ Requirements
             - **.msi / .exe**: No additional requirements
             - **.jar** files: Java 21 or later installed
+
+            ### 📝 Important Notes
+            - **First Run**: You'll be prompted to set a master password for history access
+            - **Storage**: History stored in `~/.passwordgenerator/` directory
+            - **Security**: Master password uses SHA-256 + salt hashing
           files: |
             dist/*.msi
             PasswordGenerator-Portable.zip
