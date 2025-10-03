@@ -251,7 +251,7 @@ public class AppGui extends JFrame {
         hint.setBorder(new EmptyBorder(5, 15, 5, 10));
         bar.add(hint, BorderLayout.WEST);
 
-        JLabel version = new JLabel("v2.0 Enhanced");
+        JLabel version = new JLabel("v6.0 - Password History");
         version.setForeground(new Color(100, 100, 100));
         version.setFont(new Font("Segoe UI", Font.PLAIN, 10));
         version.setBorder(new EmptyBorder(5, 10, 5, 15));
@@ -519,6 +519,15 @@ public class AppGui extends JFrame {
             String pwd = PasswordGenerator.generate(length, lower, upper, digits, symbols);
             targetPassword = pwd;
             addToHistory(pwd);
+            
+            // Save to persistent history
+            try {
+                PasswordHistory.addPassword(pwd);
+            } catch (Exception ex) {
+                System.err.println("Error saving to persistent history: " + ex.getMessage());
+                // Don't show error to user, just log it
+            }
+            
             animatePasswordReveal(pwd);
             updateStrength(pwd, lower, upper, digits, symbols);
 
@@ -680,34 +689,324 @@ public class AppGui extends JFrame {
     }
 
     private void openHistoryDialog() {
-        if (history.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No history yet.", "History", JOptionPane.INFORMATION_MESSAGE);
-            return;
+        // Check if master password is set, if not prompt to set one
+        try {
+            if (!PasswordProtection.isMasterPasswordSet()) {
+                String password = promptSetMasterPassword();
+                if (password == null || password.isEmpty()) {
+                    return; // User cancelled
+                }
+            } else {
+                // Verify master password
+                if (!promptVerifyMasterPassword()) {
+                    return; // Authentication failed
+                }
+            }
+            
+            // Load persistent history
+            List<PasswordHistory.HistoryEntry> historyEntries = PasswordHistory.getAllHistory();
+            
+            if (historyEntries.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "No password history yet. Generate some passwords first!", 
+                    "History Empty", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            
+            showHistoryWindow(historyEntries);
+            
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Error accessing history: " + ex.getMessage(), 
+                "Error", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
         }
-        refreshHistoryUI();
-        JDialog dlg = new JDialog(this, "Password History", false);
-        dlg.setLayout(new BorderLayout());
-        JScrollPane scroll = new JScrollPane(historyListPanel);
-        scroll.setPreferredSize(new Dimension(480, 260));
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-        dlg.add(scroll, BorderLayout.CENTER);
+    }
 
-        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        bottom.setOpaque(false);
-        JButton saveHistoryBtn = smallButton("💾 Save");
+    private String promptSetMasterPassword() {
+        final int MAX_ATTEMPTS = 3;
+        int attempts = 0;
+        
+        while (attempts < MAX_ATTEMPTS) {
+            JPanel panel = new JPanel(new GridLayout(3, 1, 5, 5));
+            JLabel label = new JLabel("First time accessing history. Please set a master password:");
+            JPasswordField passwordField = new JPasswordField(20);
+            JPasswordField confirmField = new JPasswordField(20);
+            
+            panel.add(label);
+            panel.add(new JLabel("Password:"));
+            panel.add(passwordField);
+            panel.add(new JLabel("Confirm:"));
+            panel.add(confirmField);
+            
+            int result = JOptionPane.showConfirmDialog(this, panel, "Set Master Password", 
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            
+            if (result != JOptionPane.OK_OPTION) {
+                return null; // User cancelled
+            }
+            
+            String password = new String(passwordField.getPassword());
+            String confirm = new String(confirmField.getPassword());
+            
+            if (password.isEmpty()) {
+                attempts++;
+                if (attempts < MAX_ATTEMPTS) {
+                    JOptionPane.showMessageDialog(this, 
+                        "Password cannot be empty! Attempt " + attempts + " of " + MAX_ATTEMPTS, 
+                        "Invalid Password", JOptionPane.ERROR_MESSAGE);
+                    continue;
+                } else {
+                    JOptionPane.showMessageDialog(this, 
+                        "Maximum attempts exceeded. Password setup cancelled.", 
+                        "Setup Cancelled", JOptionPane.ERROR_MESSAGE);
+                    return null;
+                }
+            }
+            
+            if (!password.equals(confirm)) {
+                attempts++;
+                if (attempts < MAX_ATTEMPTS) {
+                    JOptionPane.showMessageDialog(this, 
+                        "Passwords do not match! Attempt " + attempts + " of " + MAX_ATTEMPTS, 
+                        "Password Mismatch", JOptionPane.ERROR_MESSAGE);
+                    continue;
+                } else {
+                    JOptionPane.showMessageDialog(this, 
+                        "Maximum attempts exceeded. Password setup cancelled.", 
+                        "Setup Cancelled", JOptionPane.ERROR_MESSAGE);
+                    return null;
+                }
+            }
+            
+            try {
+                PasswordProtection.setMasterPassword(password);
+                JOptionPane.showMessageDialog(this, "Master password set successfully!", 
+                    "Success", JOptionPane.INFORMATION_MESSAGE);
+                return password;
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error setting password: " + ex.getMessage(), 
+                    "Error", JOptionPane.ERROR_MESSAGE);
+                return null;
+            }
+        }
+        
+        return null;
+    }
+
+    private boolean promptVerifyMasterPassword() {
+        int attempts = 0;
+        final int MAX_ATTEMPTS = 3;
+        
+        while (attempts < MAX_ATTEMPTS) {
+            JPanel panel = new JPanel(new GridLayout(2, 1, 5, 5));
+            JLabel label = new JLabel("Enter master password to view history:");
+            JPasswordField passwordField = new JPasswordField(20);
+            
+            panel.add(label);
+            panel.add(passwordField);
+            
+            int result = JOptionPane.showConfirmDialog(this, panel, "Master Password Required", 
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            
+            if (result != JOptionPane.OK_OPTION) {
+                return false; // User cancelled
+            }
+            
+            String password = new String(passwordField.getPassword());
+            
+            try {
+                if (PasswordProtection.verifyMasterPassword(password)) {
+                    return true;
+                } else {
+                    attempts++;
+                    if (attempts < MAX_ATTEMPTS) {
+                        JOptionPane.showMessageDialog(this, 
+                            "Incorrect password. Attempt " + attempts + " of " + MAX_ATTEMPTS, 
+                            "Authentication Failed", JOptionPane.ERROR_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(this, 
+                            "Maximum attempts exceeded. Access denied.", 
+                            "Access Denied", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error verifying password: " + ex.getMessage(), 
+                    "Error", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+        }
+        
+        return false;
+    }
+
+    private void showHistoryWindow(List<PasswordHistory.HistoryEntry> historyEntries) {
+        JDialog dlg = new JDialog(this, "🔐 Password History", false);
+        dlg.setLayout(new BorderLayout(10, 10));
+        
+        // Create history display panel
+        JPanel historyPanel = new JPanel();
+        historyPanel.setLayout(new BoxLayout(historyPanel, BoxLayout.Y_AXIS));
+        historyPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        
+        int position = 1;
+        for (PasswordHistory.HistoryEntry entry : historyEntries) {
+            JPanel entryPanel = createHistoryEntryPanel(position, entry);
+            historyPanel.add(entryPanel);
+            historyPanel.add(Box.createVerticalStrut(5));
+            position++;
+        }
+        
+        JScrollPane scrollPane = new JScrollPane(historyPanel);
+        scrollPane.setPreferredSize(new Dimension(600, 400));
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Password History (" + historyEntries.size() + " entries)"));
+        
+        dlg.add(scrollPane, BorderLayout.CENTER);
+        
+        // Bottom panel with buttons
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        bottomPanel.setBorder(new EmptyBorder(0, 10, 10, 10));
+        
+        JButton exportBtn = smallButton("💾 Export");
+        JButton clearBtn = smallButton("🗑️ Clear All");
         JButton closeBtn = smallButton("✖ Close");
-        saveHistoryBtn.addActionListener(e -> {
-            savePasswords();
+        
+        exportBtn.addActionListener(e -> exportHistoryToFile(historyEntries));
+        clearBtn.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(dlg, 
+                "Are you sure you want to clear all password history?\nThis action cannot be undone!", 
+                "Confirm Clear", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            
+            if (confirm == JOptionPane.YES_OPTION) {
+                try {
+                    PasswordHistory.clearHistory();
+                    JOptionPane.showMessageDialog(dlg, "History cleared successfully!", 
+                        "Success", JOptionPane.INFORMATION_MESSAGE);
+                    dlg.dispose();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(dlg, "Error clearing history: " + ex.getMessage(), 
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
         });
         closeBtn.addActionListener(e -> dlg.dispose());
-        bottom.add(saveHistoryBtn);
-        bottom.add(closeBtn);
-        dlg.add(bottom, BorderLayout.SOUTH);
-
-        dlg.getContentPane().setBackground(getContentPane().getBackground());
+        
+        bottomPanel.add(exportBtn);
+        bottomPanel.add(clearBtn);
+        bottomPanel.add(closeBtn);
+        
+        dlg.add(bottomPanel, BorderLayout.SOUTH);
+        
+        // Theme the dialog
+        Color bg = darkTheme ? new Color(15, 15, 20) : new Color(248, 248, 252);
+        dlg.getContentPane().setBackground(bg);
+        historyPanel.setBackground(bg);
+        scrollPane.setBackground(bg);
+        scrollPane.getViewport().setBackground(bg);
+        
         dlg.pack();
         dlg.setLocationRelativeTo(this);
         dlg.setVisible(true);
+    }
+
+    private JPanel createHistoryEntryPanel(int position, PasswordHistory.HistoryEntry entry) {
+        JPanel panel = new JPanel(new BorderLayout(10, 0));
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(60, 60, 60), 1),
+            new EmptyBorder(8, 10, 8, 10)
+        ));
+        
+        // Position label
+        JLabel posLabel = new JLabel(position + ".");
+        posLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        posLabel.setForeground(darkTheme ? new Color(150, 150, 150) : new Color(100, 100, 100));
+        posLabel.setPreferredSize(new Dimension(40, 20));
+        
+        // Timestamp label
+        JLabel timeLabel = new JLabel(entry.getFormattedTimestamp());
+        timeLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        timeLabel.setForeground(darkTheme ? new Color(180, 180, 180) : new Color(80, 80, 80));
+        timeLabel.setPreferredSize(new Dimension(150, 20));
+        
+        // Password label
+        JLabel pwdLabel = new JLabel(entry.getPassword());
+        pwdLabel.setFont(new Font("JetBrains Mono", Font.PLAIN, 12));
+        pwdLabel.setForeground(darkTheme ? neonAccent : new Color(0, 90, 160));
+        pwdLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        pwdLabel.setToolTipText("Click to copy");
+        
+        pwdLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                copyToClipboard(entry.getPassword());
+                showTransientOverlay("📋 Copied!", pwdLabel, 1200);
+            }
+            
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                pwdLabel.setForeground(darkTheme ? neonAccentAlt : new Color(255, 100, 0));
+            }
+            
+            @Override
+            public void mouseExited(MouseEvent e) {
+                pwdLabel.setForeground(darkTheme ? neonAccent : new Color(0, 90, 160));
+            }
+        });
+        
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        leftPanel.setOpaque(false);
+        leftPanel.add(posLabel);
+        leftPanel.add(timeLabel);
+        
+        panel.add(leftPanel, BorderLayout.WEST);
+        panel.add(pwdLabel, BorderLayout.CENTER);
+        
+        return panel;
+    }
+
+    private void exportHistoryToFile(List<PasswordHistory.HistoryEntry> entries) {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setSelectedFile(new File("password_history_" +
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".txt"));
+
+        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File f = chooser.getSelectedFile();
+            try (BufferedWriter bw = new BufferedWriter(new FileWriter(f))) {
+                bw.write("=".repeat(80));
+                bw.newLine();
+                bw.write("🔐 Password Generator - History Export");
+                bw.newLine();
+                bw.write("Exported: " + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                bw.newLine();
+                bw.write("Total Entries: " + entries.size());
+                bw.newLine();
+                bw.write("=".repeat(80));
+                bw.newLine();
+                bw.newLine();
+
+                int position = 1;
+                for (PasswordHistory.HistoryEntry entry : entries) {
+                    bw.write(String.format("%d. %s, %s", 
+                        position++, 
+                        entry.getFormattedTimestamp(), 
+                        entry.getPassword()));
+                    bw.newLine();
+                }
+
+                bw.newLine();
+                bw.write("=".repeat(80));
+                bw.newLine();
+                bw.write("⚠️  SECURITY NOTE: Store this file securely and delete when no longer needed.");
+                bw.newLine();
+
+                JOptionPane.showMessageDialog(this, "History exported to: " + f.getName(), 
+                    "Export Successful", JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error exporting history: " + ex.getMessage(),
+                    "Export Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     private void copyCurrentPassword() {
